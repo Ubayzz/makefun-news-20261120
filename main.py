@@ -1,32 +1,72 @@
-"""main.py — entrypoint for make.fun bounty news-image-20261120.
+"""main.py — news-image-20261120 entrypoint.
 
-Copies the pre-rendered infographic (entry_final.jpg) to /output/entry.png.
-Pure Python stdlib — no dependencies, no network. The output file is a
-valid JPEG (the gate reads magic bytes; JPEG content with .png name allowed).
+Copies the pre-rendered infographic to /output/entry.png.
+Pure stdlib: no external deps, no network.  The output file is a valid
+JPEG (magic bytes ffd8ff) saved as entry.png per the gate rules.
 
-The image sums up the world's news of Friday 20 November 2026 with an
-illustrated newspaper editorial layout.
+Infographic sums up world news of Friday 20 November 2026 in an
+illustrated newspaper-editorial layout.  See NEWS_RESEARCH.md and
+CREATIVE_BRIEF.md for full source list.
 
-Artwork: ChatGPT image generation, verified against November 20, 2026 sources.
-See NEWS_RESEARCH.md and CREATIVE_BRIEF.md for full source list.
+Artwork: ChatGPT-generated image, fact-checked against real news sources
+for 20 November 2026.  Entry is the pre-rendered JPEG already in the repo;
+main.py just stages it.
 """
 
+import hashlib
 import os
 import shutil
 import sys
 
-SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entry_final.jpg")
-DST_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-DST = os.path.join(DST_DIR, "entry.png")
+# ---------------------------------------------------------------------------
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
-if not os.path.isfile(SRC):
-    print(f"ERROR: source image not found at {SRC}", file=sys.stderr)
-    sys.exit(1)
+IMAGE_SRC = os.path.join(REPO_DIR, "entry_final.jpg")
+IMAGE_DST_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+IMAGE_DST = os.path.join(IMAGE_DST_DIR, "entry.png")
 
-if os.path.getsize(SRC) > 1_048_576:
-    print(f"ERROR: entry_final.jpg exceeds 1 MiB limit", file=sys.stderr)
-    sys.exit(1)
+BYTES_1_MIB = 1_048_576
 
-os.makedirs(DST_DIR, exist_ok=True)
-shutil.copy2(SRC, DST)
-print(f"entry_final.jpg → {DST}")
+
+def validate_source(path: str) -> None:
+    """Bail out early if the source file is missing or too large."""
+    if not os.path.isfile(path):
+        print(f"ERROR: {path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    size = os.path.getsize(path)
+    if size > BYTES_1_MIB:
+        print(
+            f"ERROR: {path} is {size} bytes — exceeds 1 MiB limit",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def copy_image(src: str, dst: str) -> None:
+    """Copy the image file and verify the destination hash matches.
+
+    The gate reads the file by magic bytes (ffd8ff for JPEG) not by
+    extension — entry.png is the required filename regardless of the
+    underlying format.
+    """
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy2(src, dst)
+
+    # Verify the copy landed byte-for-byte identical
+    with open(src, "rb") as f:
+        src_hash = hashlib.sha256(f.read()).hexdigest()
+    with open(dst, "rb") as f:
+        dst_hash = hashlib.sha256(f.read()).hexdigest()
+
+    if src_hash != dst_hash:
+        print("ERROR: destination hash differs from source", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"{os.path.basename(src)} → {dst}  ({os.path.getsize(dst)} bytes, sha256={dst_hash[:12]}…)")
+
+
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    validate_source(IMAGE_SRC)
+    copy_image(IMAGE_SRC, IMAGE_DST)
