@@ -7,8 +7,8 @@ valid JPEG (the gate reads magic bytes; JPEG content with .png name allowed).
 The image sums up the world's news of Friday 20 November 2026 with an
 illustrated newspaper editorial layout.
 
-Artwork: ChatGPT image generation, fact-checked against verified sources.
-Source URLs in NEWS_RESEARCH.md.
+Artwork: ChatGPT image generation, verified against November 20, 2026 sources.
+See NEWS_RESEARCH.md and CREATIVE_BRIEF.md for full source list.
 """
 
 import os
